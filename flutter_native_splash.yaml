@@ -1,0 +1,19 @@
+# Run after changing this file:
+#   dart run flutter_native_splash:create
+#
+# Remove generated splash (restore Flutter defaults):
+#   dart run flutter_native_splash:remove
+
+flutter_native_splash:
+  # Deep navy background — pairs with the blue/cyan Streamit mark
+  color: "#0B1220"
+  image: assets/icons/streamit_logo.png
+
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web: true
+
+  android_12:
+    image: assets/icons/streamit_logo.png
+    color: "#0B1220"
+    icon_background_color: "#0B1220"
