@@ -66,6 +66,19 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<!--
+			Permission usage descriptions (required by Apple when the linked APIs are present).
+			Keep wording accurate: vague or inaccurate text can cause App Review issues.
+			See: https://developer.apple.com/documentation/bundleresources/information-property-list/protected-resources
+		-->
+		<key>NSCameraUsageDescription</key>
+		<string>Streamit needs camera access when you capture a photo or video in the app.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Streamit needs microphone access when you record video that includes audio.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Streamit needs access to your photo library when you choose photos or videos to use in the app.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Streamit uses your location only while you use the app, when a feature needs your approximate position.</string>
 		<key>NSAppTransportSecurity</key>
 		<dict>
 			<key>NSAllowsArbitraryLoads</key>

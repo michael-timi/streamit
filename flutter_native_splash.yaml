@@ -1,4 +1,7 @@
-# Run after changing this file:
+# Splash bitmap is generated from the vector logo:
+#   node scripts/rasterize_logo.cjs && dart run flutter_native_splash:create
+#
+# Run after changing flutter_native_splash.yaml only:
 #   dart run flutter_native_splash:create
 #
 # Remove generated splash (restore Flutter defaults):

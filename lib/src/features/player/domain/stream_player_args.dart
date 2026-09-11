@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:streamit/src/features/player/domain/playback_source.dart';
 
 /// Route extra for [StreamPlayerScreen].
 class StreamPlayerArgs extends Equatable {
@@ -8,6 +9,7 @@ class StreamPlayerArgs extends Equatable {
     this.logoUrl,
     this.referrer,
     this.userAgent,
+    this.additionalSources,
   });
 
   final String streamUrl;
@@ -20,6 +22,10 @@ class StreamPlayerArgs extends Equatable {
   /// From IPTV Org `streams.json` when merged (HTTP `User-Agent`).
   final String? userAgent;
 
+  /// Extra IPTV Org API URLs for the same channel (after primary fails).
+  final List<PlaybackSource>? additionalSources;
+
   @override
-  List<Object?> get props => [streamUrl, title, logoUrl, referrer, userAgent];
+  List<Object?> get props =>
+      [streamUrl, title, logoUrl, referrer, userAgent, additionalSources];
 }

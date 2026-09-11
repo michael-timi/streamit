@@ -1,19 +1,61 @@
 {
   "shared": {
-    "get_started": "Get Started"
+    "get_started": "Get Started",
+    "next": "Next"
   },
   "onboarding": {
-    "onboarding_title_1": "Your Journey,\nPerfectly Planned",
-    "onboarding_subtitle_1": "Effortlessly create and organize your\ndream trips. Start exploring now!",
-    "onboarding_title_2": "Discover\nFriends Nearby",
-    "onboarding_subtitle_2": "See where your friends are traveling and\nexplore the world together.",
-    "onboarding_title_3": "Stay Updated\nwith Top Places",
-    "onboarding_subtitle_3": "Find trending destinations and must-see attractions,\nall tailored to enhance your travel plans."
+    "app_name": "Streamit",
+    "onboarding_title_1": "Live TV on your phone",
+    "onboarding_subtitle_1": "Browse public channel lists, pick a country, and start watching with a built-in player—no extra setup on this step.",
+    "onboarding_title_2": "Your region, your list",
+    "onboarding_subtitle_2": "Filter by country, category, and custom country code. Data is loaded on demand and cached for a faster return next time.",
+    "onboarding_title_3": "Smarter playback",
+    "onboarding_subtitle_3": "We merge stream details from the community index to improve compatibility, and try fallbacks if a link is finicky—so you spend less time fixing, more time watching."
   },
   "home": {
     "home_title": "Home",
     "welcome_home": "Welcome Home!",
-    "home_subtitle": "You have successfully completed the onboarding process."
+    "home_subtitle": "You have successfully completed the onboarding process.",
+    "filter_by_category": "Category",
+    "all_categories": "All",
+    "category_uncategorized": "Uncategorized",
+    "no_channels_in_category": "No channels in this category",
+    "try_another_category": "Pick “All”, another category, or change country.",
+    "channels_region_summary": "{} channels · {}"
+  },
+  "settings": {
+    "title": "Playlist settings",
+    "region_section": "Region",
+    "region_help": "The channel list is loaded from IPTV Org for the selected ISO country code.",
+    "quick_countries": "Quick select",
+    "custom_country": "Custom country",
+    "custom_country_hint": "e.g. us",
+    "apply": "Apply",
+    "invalid_country": "Use a valid 2-letter country code (e.g. us, gb).",
+    "cache_section": "Cache",
+    "hard_refresh": "Hard refresh lists",
+    "hard_refresh_help": "Clears the cached playlist and stream index, then reloads them. Use if channels look stale or won’t load.",
+    "hard_refresh_done": "Refreshed playlist and index for {}."
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "fullscreen_enter": "Full screen",
+    "fullscreen_exit": "Exit full screen",
+    "volume_down": "Volume down",
+    "volume_up": "Volume up",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "more": "More",
+    "share_stream": "Share stream link",
+    "open_externally": "Open in external app",
+    "copy_url": "Copy stream URL",
+    "copied": "Copied to clipboard",
+    "connecting": "Connecting to stream…",
+    "slow_network_detail": "On slow connections this can take up to a minute.",
+    "buffering": "Buffering…",
+    "weak_connection": "Weak connection — playback may pause or stutter.",
+    "refresh_stream": "Refresh stream"
   },
   "auth": {
     "log_in": "Log in",

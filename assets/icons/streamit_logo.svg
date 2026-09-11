@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Streamit — vector master. Raster `streamit_logo.png` is generated for flutter_native_splash (native splash requires PNG). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="streamitBrand" x1="8%" y1="92%" x2="92%" y2="8%">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="55%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <radialGradient id="streamitDisc" cx="36%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </radialGradient>
+    <linearGradient id="streamitWave" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer disc -->
+  <circle cx="256" cy="256" r="228" fill="url(#streamitDisc)"/>
+  <!-- Rounded play (24×24 path scaled & centered) -->
+  <g transform="translate(82 82) scale(14.5)">
+    <path
+      fill="url(#streamitBrand)"
+      d="M12 4.5v15a1 1 0 001.52.85l12-7.5a1 1 0 000-1.7l-12-7.5A1 1 0 0012 4.5z"/>
+  </g>
+  <!-- Wave / stream lines (foreground) -->
+  <path
+    fill="none"
+    stroke="#020617"
+    stroke-width="5"
+    stroke-linecap="round"
+    d="M 118 252 Q 168 218 238 238 T 358 234 Q 388 224 404 246"/>
+  <path
+    fill="none"
+    stroke="#020617"
+    stroke-width="5"
+    stroke-linecap="round"
+    d="M 112 282 Q 176 246 238 266 T 352 258 Q 384 246 408 274"/>
+  <path
+    fill="none"
+    stroke="#020617"
+    stroke-width="5"
+    stroke-linecap="round"
+    d="M 124 310 Q 184 284 238 294 T 352 286 Q 384 276 408 302"/>
+  <path
+    fill="none"
+    stroke="url(#streamitWave)"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    d="M 124 250 Q 184 218 238 232 T 352 224 Q 382 218 402 238"/>
+  <path
+    fill="none"
+    stroke="url(#streamitWave)"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    d="M 118 282 Q 176 254 238 266 T 352 256 Q 380 246 402 268"/>
+  <path
+    fill="none"
+    stroke="url(#streamitWave)"
+    stroke-width="3.2"
+    stroke-linecap="round"
+    d="M 130 308 Q 186 288 238 296 T 352 290 Q 378 284 398 302"/>
+</svg>

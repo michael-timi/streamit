@@ -83,6 +83,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   FutureEither<AppUser?> checkAuthState() async {
+    if (!AppConfig.hasApiBaseUrl) {
+      return right(null);
+    }
+
     final result = await _authService.getCurrentUser();
     
     return result.map((userData) {

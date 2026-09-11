@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match ios/Runner/Info.plist usage strings; use from Dart/SnackBars if you show custom rationales. -->
+    <string name="permission_camera_rationale">Streamit needs camera access when you capture a photo or video.</string>
+    <string name="permission_microphone_rationale">Streamit needs microphone access when you record video with sound.</string>
+    <string name="permission_photos_rationale">Streamit needs access to your photo library when you choose images or videos.</string>
+    <string name="permission_location_rationale">Streamit uses your location while you use the app when a feature requires it.</string>
+</resources>

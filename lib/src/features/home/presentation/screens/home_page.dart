@@ -3,10 +3,59 @@ import 'package:streamit/src/imports/packages_imports.dart';
 import 'package:streamit/src/features/auth/presentation/providers/session_provider.dart';
 import 'package:streamit/src/features/home/domain/entities/live_channel.dart';
 import 'package:streamit/src/features/home/presentation/providers/live_channels_provider.dart';
+import 'package:streamit/src/features/player/domain/playback_source.dart';
 import 'package:streamit/src/features/player/domain/stream_player_args.dart';
 import 'package:streamit/src/services/url_launcher_service.dart';
 
-class HomePage extends HookConsumerWidget {
+/// Playlist rows without `group-title` — filter sentinel (not a real M3U value).
+const String _kCategoryUncategorized = '__streamit_uncategorized__';
+
+bool _channelMatchesCategory(LiveChannel channel, String? selectedCategory) {
+  if (selectedCategory == null) return true;
+  final g = channel.groupTitle?.trim();
+  if (selectedCategory == _kCategoryUncategorized) {
+    return g == null || g.isEmpty;
+  }
+  return g == selectedCategory;
+}
+
+/// Sorted unique `group-title` values plus [uncategorized] when needed.
+List<String> _categoryFilterIds(List<LiveChannel> channels) {
+  final named = channels
+      .map((c) => c.groupTitle?.trim())
+      .whereType<String>()
+      .where((s) => s.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+  final hasUncategorized = channels.any(
+    (c) =>
+        c.groupTitle == null ||
+        (c.groupTitle != null && c.groupTitle!.trim().isEmpty),
+  );
+
+  return <String>[
+    if (hasUncategorized) _kCategoryUncategorized,
+    ...named,
+  ];
+}
+
+String _categoryChipDisplayLabel(String id) {
+  if (id == _kCategoryUncategorized) {
+    return 'home.category_uncategorized'.tr();
+  }
+  return id;
+}
+
+String _categorySelectionTitle(String? selectedCategory) {
+  if (selectedCategory == null) {
+    return 'home.all_categories'.tr();
+  }
+  return _categoryChipDisplayLabel(selectedCategory);
+}
+
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
@@ -19,17 +68,23 @@ class HomePage extends HookConsumerWidget {
     final user = session.user;
 
     final countryCode = ref.watch(selectedCountryCodeProvider);
-    final countryInputController = useTextEditingController();
-    useEffect(() {
-      countryInputController.text = countryCode.toUpperCase();
-      return null;
-    }, [countryCode]);
     final channelsAsync = ref.watch(liveChannelsByCountryProvider(countryCode));
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppTopBar(
         title: 'home.home_title'.tr(),
+        showLeading: false,
+        actions: [
+          IconButton(
+            tooltip: 'settings.title'.tr(),
+            onPressed: () => context.push(AppRoutes.homeSettings),
+            icon: Icon(
+              Icons.settings_outlined,
+              color: colorScheme.onSurface,
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: channelsAsync.when(
@@ -49,63 +104,6 @@ class HomePage extends HookConsumerWidget {
             channels: channels,
             textTheme: textTheme,
             colorScheme: colorScheme,
-            onCountryChanged: (value) {
-              ref.read(selectedCountryCodeProvider.notifier).state = value;
-              ref.read(selectedCategoryProvider.notifier).state = null;
-            },
-            countryInputController: countryInputController,
-            onApplyCustomCountry: () {
-              final rawValue = countryInputController.text.trim().toLowerCase();
-              final isValidCountryCode =
-                  RegExp(r'^[a-z]{2}$').hasMatch(rawValue);
-              if (!isValidCountryCode) {
-                showToast(
-                  context,
-                  message:
-                      'Use a valid 2-letter country code (e.g. us, gb, in).',
-                  status: 'warning',
-                );
-                return;
-              }
-
-              ref.read(selectedCountryCodeProvider.notifier).state = rawValue;
-              ref.read(selectedCategoryProvider.notifier).state = null;
-            },
-            onHardRefresh: () async {
-              final repository = ref.read(liveChannelsRepositoryProvider);
-              final countryResult =
-                  await repository.clearCountryCache(countryCode: countryCode);
-              if (!context.mounted) return;
-              final countryFailure =
-                  countryResult.fold((failure) => failure, (_) => null);
-              if (countryFailure != null) {
-                showToast(
-                  context,
-                  message: countryFailure.message,
-                  status: 'error',
-                );
-                return;
-              }
-
-              final streamsResult = await repository.clearStreamsApiCache();
-              if (!context.mounted) return;
-              streamsResult.fold(
-                (failure) => showToast(
-                  context,
-                  message: failure.message,
-                  status: 'error',
-                ),
-                (_) {
-                  ref.invalidate(liveChannelsByCountryProvider(countryCode));
-                  showToast(
-                    context,
-                    message:
-                        'Hard refresh: playlist + streams API for ${countryCode.toUpperCase()}',
-                    status: 'success',
-                  );
-                },
-              );
-            },
             selectedCategory: ref.watch(selectedCategoryProvider),
             onCategoryChanged: (value) {
               ref.read(selectedCategoryProvider.notifier).state = value;
@@ -125,10 +123,6 @@ class _HomeChannelsView extends StatelessWidget {
     required this.channels,
     required this.textTheme,
     required this.colorScheme,
-    required this.onCountryChanged,
-    required this.countryInputController,
-    required this.onApplyCustomCountry,
-    required this.onHardRefresh,
     required this.selectedCategory,
     required this.onCategoryChanged,
   });
@@ -139,29 +133,15 @@ class _HomeChannelsView extends StatelessWidget {
   final List<LiveChannel> channels;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
-  final ValueChanged<String> onCountryChanged;
-  final TextEditingController countryInputController;
-  final VoidCallback onApplyCustomCountry;
-  final VoidCallback onHardRefresh;
   final String? selectedCategory;
   final ValueChanged<String?> onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
-    final categories = channels
-        .map((channel) => channel.groupTitle)
-        .whereType<String>()
-        .where((category) => category.trim().isNotEmpty)
-        .map((category) => category.trim())
-        .toSet()
-        .toList()
-      ..sort();
-
-    final filteredChannels = selectedCategory == null
-        ? channels
-        : channels
-            .where((channel) => channel.groupTitle == selectedCategory)
-            .toList();
+    final categoryIds = _categoryFilterIds(channels);
+    final filteredChannels = channels
+        .where((c) => _channelMatchesCategory(c, selectedCategory))
+        .toList();
 
     if (channels.isEmpty) {
       return const AppEmptyState(
@@ -170,216 +150,243 @@ class _HomeChannelsView extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: EdgeInsets.all(AppSpacing.xl.w),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _HeaderCard(
-            userName: userName,
-            subtitle: subtitle,
-            channelsCount: filteredChannels.length,
-            textTheme: textTheme,
-            colorScheme: colorScheme,
-            countryCode: countryCode,
-            onCountryChanged: onCountryChanged,
-            countryInputController: countryInputController,
-            onApplyCustomCountry: onApplyCustomCountry,
-            onHardRefresh: onHardRefresh,
-            selectedCategory: selectedCategory,
-            categories: categories,
-            onCategoryChanged: onCategoryChanged,
-          );
-        }
+    final header = _HomeBrowseHeader(
+      userName: userName,
+      subtitle: subtitle,
+      filteredCount: filteredChannels.length,
+      countryCode: countryCode,
+      textTheme: textTheme,
+      colorScheme: colorScheme,
+      selectedCategory: selectedCategory,
+      categoryIds: categoryIds,
+      onCategoryChanged: onCategoryChanged,
+    );
 
-        final channel = filteredChannels[index - 1];
-        return _ChannelTile(channel: channel);
-      },
-      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.md.h),
-      itemCount: filteredChannels.length + 1,
+    final channelTiles = <Widget>[
+      for (var i = 0; i < filteredChannels.length; i++) ...[
+        if (i > 0) SizedBox(height: AppSpacing.md.h),
+        _ChannelTile(channel: filteredChannels[i]),
+      ],
+    ];
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.xl.w,
+        AppSpacing.md.h,
+        AppSpacing.xl.w,
+        AppSpacing.xl.w,
+      ),
+      children: [
+        header,
+        if (filteredChannels.isEmpty && channels.isNotEmpty) ...[
+          SizedBox(height: AppSpacing.xl.h),
+          Text(
+            'home.no_channels_in_category'.tr(),
+            textAlign: TextAlign.center,
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: AppSpacing.sm.h),
+          Text(
+            'home.try_another_category'.tr(),
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ] else
+          ...channelTiles,
+      ],
     );
   }
 }
 
-class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({
+class _HomeBrowseHeader extends StatelessWidget {
+  const _HomeBrowseHeader({
     required this.userName,
     required this.subtitle,
-    required this.channelsCount,
+    required this.filteredCount,
+    required this.countryCode,
     required this.textTheme,
     required this.colorScheme,
-    required this.countryCode,
-    required this.onCountryChanged,
-    required this.countryInputController,
-    required this.onApplyCustomCountry,
-    required this.onHardRefresh,
     required this.selectedCategory,
-    required this.categories,
+    required this.categoryIds,
     required this.onCategoryChanged,
   });
 
   final String userName;
   final String subtitle;
-  final int channelsCount;
+  final int filteredCount;
+  final String countryCode;
   final TextTheme textTheme;
   final ColorScheme colorScheme;
-  final String countryCode;
-  final ValueChanged<String> onCountryChanged;
-  final TextEditingController countryInputController;
-  final VoidCallback onApplyCustomCountry;
-  final VoidCallback onHardRefresh;
   final String? selectedCategory;
-  final List<String> categories;
+  final List<String> categoryIds;
   final ValueChanged<String?> onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: EdgeInsets.all(AppSpacing.lg.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedHome01,
-                size: 28.sp,
-                color: colorScheme.primary,
-              ),
-              SizedBox(width: AppSpacing.md.w),
-              Expanded(
-                child: Text(
-                  userName,
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          userName,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: colorScheme.onSurface,
           ),
-          SizedBox(height: AppSpacing.sm.h),
-          Text(
-            subtitle,
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+        ),
+        SizedBox(height: AppSpacing.xs.h),
+        Text(
+          subtitle,
+          style: textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        SizedBox(height: AppSpacing.lg.h),
+        Row(
+          children: [
+            Icon(
+              Icons.public_rounded,
+              size: 20.sp,
+              color: colorScheme.primary,
             ),
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          Wrap(
-            spacing: AppSpacing.sm.w,
-            runSpacing: AppSpacing.sm.h,
-            children: [
-              _CountryChip(
-                code: 'us',
-                selected: countryCode == 'us',
-                onTap: onCountryChanged,
-              ),
-              _CountryChip(
-                code: 'gb',
-                selected: countryCode == 'gb',
-                onTap: onCountryChanged,
-              ),
-              _CountryChip(
-                code: 'in',
-                selected: countryCode == 'in',
-                onTap: onCountryChanged,
-              ),
-              _CountryChip(
-                code: 'fr',
-                selected: countryCode == 'fr',
-                onTap: onCountryChanged,
-              ),
-              _CountryChip(
-                code: 'de',
-                selected: countryCode == 'de',
-                onTap: onCountryChanged,
-              ),
-            ],
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: countryInputController,
-                  hint: 'Country code (e.g. us)',
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => onApplyCustomCountry(),
+            SizedBox(width: AppSpacing.sm.w),
+            Expanded(
+              child: Text(
+                'home.channels_region_summary'.tr(
+                  args: [
+                    '$filteredCount',
+                    countryCode.toUpperCase(),
+                  ],
                 ),
-              ),
-              SizedBox(width: AppSpacing.sm.w),
-              AppButton(
-                label: 'Apply',
-                height: ButtonSize.small,
-                onPressed: onApplyCustomCountry,
-              ),
-              SizedBox(width: AppSpacing.sm.w),
-              AppButton(
-                label: 'Hard Refresh',
-                height: ButtonSize.small,
-                variant: ButtonVariant.outline,
-                onPressed: onHardRefresh,
-              ),
-            ],
-          ),
-          if (categories.isNotEmpty) ...[
-            SizedBox(height: AppSpacing.md.h),
-            SizedBox(
-              height: 38.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return ChoiceChip(
-                      label: const Text('All'),
-                      selected: selectedCategory == null,
-                      onSelected: (_) => onCategoryChanged(null),
-                    );
-                  }
-
-                  final category = categories[index - 1];
-                  return ChoiceChip(
-                    label: Text(category),
-                    selected: selectedCategory == category,
-                    onSelected: (_) => onCategoryChanged(category),
-                  );
-                },
-                separatorBuilder: (_, __) => SizedBox(width: AppSpacing.sm.w),
-                itemCount: categories.length + 1,
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
           ],
-          SizedBox(height: AppSpacing.md.h),
-          Text(
-            'Top $channelsCount IPTV Org channels (${countryCode.toUpperCase()})',
-            style: textTheme.labelLarge?.copyWith(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w700,
+        ),
+        SizedBox(height: AppSpacing.lg.h),
+        Divider(height: 1.h, color: colorScheme.outlineVariant),
+        SizedBox(height: AppSpacing.md.h),
+        Text(
+          'home.filter_by_category'.tr(),
+          style: textTheme.titleSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: AppSpacing.sm.h),
+        SizedBox(
+          width: double.infinity,
+          child: PopupMenuButton<String?>(
+            tooltip: 'home.filter_by_category'.tr(),
+            position: PopupMenuPosition.under,
+            offset: Offset(0, AppSpacing.xs.h),
+            onSelected: onCategoryChanged,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            itemBuilder: (context) => <PopupMenuEntry<String?>>[
+              PopupMenuItem<String?>(
+                value: null,
+                child: _CategoryMenuRow(
+                  label: 'home.all_categories'.tr(),
+                  selected: selectedCategory == null,
+                  colorScheme: colorScheme,
+                ),
+              ),
+              if (categoryIds.isNotEmpty) const PopupMenuDivider(),
+              for (final id in categoryIds)
+                PopupMenuItem<String?>(
+                  value: id,
+                  child: _CategoryMenuRow(
+                    label: _categoryChipDisplayLabel(id),
+                    selected: selectedCategory == id,
+                    colorScheme: colorScheme,
+                  ),
+                ),
+            ],
+            child: Material(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(12.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md.w,
+                  vertical: AppSpacing.sm.h,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.folder_outlined,
+                      size: 22.sp,
+                      color: colorScheme.primary,
+                    ),
+                    SizedBox(width: AppSpacing.sm.w),
+                    Expanded(
+                      child: Text(
+                        _categorySelectionTitle(selectedCategory),
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+        SizedBox(height: AppSpacing.lg.h),
+      ],
     );
   }
 }
 
-class _CountryChip extends StatelessWidget {
-  const _CountryChip({
-    required this.code,
+class _CategoryMenuRow extends StatelessWidget {
+  const _CategoryMenuRow({
+    required this.label,
     required this.selected,
-    required this.onTap,
+    required this.colorScheme,
   });
 
-  final String code;
+  final String label;
   final bool selected;
-  final ValueChanged<String> onTap;
+  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(code.toUpperCase()),
-      selected: selected,
-      onSelected: (_) => onTap(code),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24.sp,
+          child: Icon(
+            Icons.check_rounded,
+            size: 20.sp,
+            color: selected ? colorScheme.primary : Colors.transparent,
+          ),
+        ),
+        SizedBox(width: AppSpacing.sm.w),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -404,6 +411,15 @@ class _ChannelTile extends StatelessWidget {
             logoUrl: channel.logoUrl,
             referrer: channel.referrer,
             userAgent: channel.userAgent,
+            additionalSources: channel.playbackAlternates
+                ?.map(
+                  (a) => PlaybackSource(
+                    streamUrl: a.streamUrl,
+                    referrer: a.referrer,
+                    userAgent: a.userAgent,
+                  ),
+                )
+                .toList(),
           ),
         );
       },

@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:streamit/src/features/home/data/models/stream_api_entry.dart';
 import 'package:streamit/src/features/home/data/models/stream_playback_headers.dart';
 import 'package:streamit/src/features/home/data/models/streams_lookup_index.dart';
 
@@ -71,11 +72,16 @@ class IptvOrgStreamsIndexLoader {
 StreamsLookupIndex _parseStreamsJsonIsolate(String rawJson) {
   final decoded = jsonDecode(rawJson);
   if (decoded is! List) {
-    return const StreamsLookupIndex(byUrlKey: {}, byChannelId: {});
+    return const StreamsLookupIndex(
+      byUrlKey: {},
+      byChannelId: {},
+      streamsByChannelId: {},
+    );
   }
 
   final byUrlKey = <String, StreamPlaybackHeaders>{};
   final byChannelId = <String, StreamPlaybackHeaders>{};
+  final streamsByChannelId = <String, List<StreamApiEntry>>{};
 
   for (final item in decoded) {
     if (item is! Map) continue;
@@ -98,10 +104,17 @@ StreamsLookupIndex _parseStreamsJsonIsolate(String rawJson) {
     final channel = row['channel']?.toString().trim();
     if (channel != null && channel.isNotEmpty) {
       byChannelId.putIfAbsent(channel, () => headers);
+      streamsByChannelId.putIfAbsent(channel, () => []).add(
+            StreamApiEntry(url: url.trim(), headers: headers),
+          );
     }
   }
 
-  return StreamsLookupIndex(byUrlKey: byUrlKey, byChannelId: byChannelId);
+  return StreamsLookupIndex(
+    byUrlKey: byUrlKey,
+    byChannelId: byChannelId,
+    streamsByChannelId: streamsByChannelId,
+  );
 }
 
 /// Candidate URL strings for matching playlist URLs to API rows (order: cheap → thorough).

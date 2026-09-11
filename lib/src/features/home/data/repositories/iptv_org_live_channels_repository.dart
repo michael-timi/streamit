@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:streamit/src/features/home/data/models/streams_lookup_index.dart';
 import 'package:streamit/src/features/home/data/services/iptv_org_streams_index_loader.dart';
 import 'package:streamit/src/features/home/domain/entities/live_channel.dart';
 import 'package:streamit/src/features/home/domain/repositories/live_channels_repository.dart';
@@ -46,11 +47,27 @@ class IptvOrgLiveChannelsRepository implements LiveChannelsRepository {
         final channels = await _mergeStreamsApi(parsed);
         await _writeCache(cacheKey, channels);
         return channels;
-      } on DioException {
+      } on DioException catch (e) {
         if (cachedChannels != null) {
           return cachedChannels.take(limit).toList();
         }
-        rethrow;
+        final status = e.response?.statusCode;
+        if (status == 404) {
+          throw Exception(
+            'No public channel playlist is available for '
+            '${normalizedCode.toUpperCase()}. Try another country code.',
+          );
+        }
+        if (status != null && status >= 400) {
+          throw Exception(
+            'Could not load channels for ${normalizedCode.toUpperCase()} '
+            '(HTTP $status). Please try again later.',
+          );
+        }
+        throw Exception(
+          'Unable to reach the channel source right now. '
+          'Please check your connection and try again.',
+        );
       }
     });
   }
@@ -81,15 +98,60 @@ class IptvOrgLiveChannelsRepository implements LiveChannelsRepository {
           channel.streamUrl,
           channel.channelId,
         );
-        if (headers == null) return channel;
-        return channel.copyWith(
-          referrer: headers.referrer,
-          userAgent: headers.userAgent,
-        );
+        final next = headers == null
+            ? channel
+            : channel.copyWith(
+                referrer: headers.referrer,
+                userAgent: headers.userAgent,
+              );
+        final alternates = _playbackAlternatesForChannel(index, next);
+        if (alternates.isEmpty) return next;
+        return next.copyWith(playbackAlternates: alternates);
       }).toList();
     } catch (_) {
       return channels;
     }
+  }
+
+  List<LivePlaybackAlternate> _playbackAlternatesForChannel(
+    StreamsLookupIndex index,
+    LiveChannel channel,
+  ) {
+    final id = channel.channelId?.trim();
+    if (id == null || id.isEmpty) return const [];
+
+    final rows = index.streamsByChannelId[id];
+    if (rows == null || rows.isEmpty) return const [];
+
+    final primary = channel.streamUrl.trim();
+    final seen = <String>{};
+    final out = <LivePlaybackAlternate>[];
+
+    for (final row in rows) {
+      final u = row.url.trim();
+      if (u.isEmpty) continue;
+      if (_urlsEffectivelyEqual(u, primary)) continue;
+      if (!seen.add(u)) continue;
+      out.add(
+        LivePlaybackAlternate(
+          streamUrl: u,
+          referrer: row.headers.referrer,
+          userAgent: row.headers.userAgent,
+        ),
+      );
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+
+  bool _urlsEffectivelyEqual(String a, String b) {
+    final ta = a.trim();
+    final tb = b.trim();
+    if (ta == tb) return true;
+    final ua = Uri.tryParse(ta);
+    final ub = Uri.tryParse(tb);
+    if (ua == null || ub == null) return false;
+    return ua == ub;
   }
 
   List<LiveChannel> _parseM3u(String content, {required int limit}) {
@@ -164,6 +226,15 @@ class IptvOrgLiveChannelsRepository implements LiveChannelsRepository {
             'channelId': channel.channelId,
             'referrer': channel.referrer,
             'userAgent': channel.userAgent,
+            'playbackAlternates': channel.playbackAlternates
+                ?.map(
+                  (a) => <String, dynamic>{
+                    'streamUrl': a.streamUrl,
+                    'referrer': a.referrer,
+                    'userAgent': a.userAgent,
+                  },
+                )
+                .toList(),
           },
         )
         .toList();
@@ -190,10 +261,30 @@ class IptvOrgLiveChannelsRepository implements LiveChannelsRepository {
             channelId: item['channelId']?.toString(),
             referrer: item['referrer']?.toString(),
             userAgent: item['userAgent']?.toString(),
+            playbackAlternates: _parsePlaybackAlternates(item['playbackAlternates']),
           ),
         )
         .where((channel) =>
             channel.name.isNotEmpty && channel.streamUrl.isNotEmpty)
         .toList();
+  }
+
+  List<LivePlaybackAlternate>? _parsePlaybackAlternates(dynamic raw) {
+    if (raw is! List) return null;
+    final out = <LivePlaybackAlternate>[];
+    for (final e in raw) {
+      if (e is! Map) continue;
+      final m = Map<String, dynamic>.from(e);
+      final url = (m['streamUrl'] ?? '').toString();
+      if (url.isEmpty) continue;
+      out.add(
+        LivePlaybackAlternate(
+          streamUrl: url,
+          referrer: m['referrer']?.toString(),
+          userAgent: m['userAgent']?.toString(),
+        ),
+      );
+    }
+    return out.isEmpty ? null : out;
   }
 }

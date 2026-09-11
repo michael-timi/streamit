@@ -7,88 +7,52 @@ environment:
   sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
+  app_version_update: ^6.2.0
+  cached_network_image: ^3.4.1
+  cupertino_icons: ^1.0.8
+  device_info_plus: ^12.4.0
+  dio: ^5.9.2
+  easy_localization: ^3.0.8
+  equatable: ^2.0.7
+  file_picker: ^10.3.10
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-
-  # Navigation
-  go_router: ^17.1.0
-
-  # Networking
-  internet_connection_checker_plus: ^2.9.1+2
-  dio: ^5.9.2
-
-  # State Management
-  fpdart: ^1.2.0
-  equatable: ^2.0.7
+  flutter_animate: ^4.5.2
+  flutter_dotenv: ^6.0.0
   flutter_hooks: ^0.21.3+1
+  flutter_native_splash: ^2.4.7
   flutter_riverpod: ^2.6.1
-  hooks_riverpod: ^2.6.1
-
-  # Backend – Firebase
-
-  # Backend – Supabase
-
-  # Backend – Appwrite
-
-  # Storage
+  flutter_screenutil: ^5.9.3
+  flutter_secure_storage: ^10.0.0
+  flutter_svg: ^2.2.4
+  fpdart: ^1.2.0
+  geolocator: ^14.0.2
+  go_router: ^17.1.0
   hive_ce: ^2.19.3
   hive_ce_flutter: ^2.3.4
-  shared_preferences: ^2.5.4
-  flutter_secure_storage: ^10.0.0
-
-  # Images & SVG
-  cached_network_image: ^3.4.1
-  flutter_svg: ^2.2.4
-
-  # Icons
+  hooks_riverpod: ^2.6.1
   hugeicons: ^1.1.5
-
-  # Shimmer / Skeleton
-  skeletonizer: ^2.1.3
-
-  # Responsive UI
-  flutter_screenutil: ^5.9.3
-
-  # Animations
-  flutter_animate: ^4.5.2
-  smooth_page_indicator: ^2.0.1
-
-  # Environment
-  flutter_dotenv: ^6.0.0
-
-  # Logging
-  logger: ^2.6.2
-
-  # Media
-  video_player: ^2.10.0
   image_picker: ^1.2.1
-  file_picker: ^10.3.10
-
-  # Utilities
+  internet_connection_checker_plus: ^2.9.1+2
+  logger: ^2.6.2
   path_provider: ^2.1.4
-  url_launcher: ^6.3.1
-  share_plus: ^12.0.2
   permission_handler: ^12.0.1
-  geolocator: ^14.0.2
-
-  # Device & System
-  device_info_plus: ^12.4.0
-  app_version_update: ^6.2.0
-
-
-  # Localization
-  easy_localization: ^3.0.8
-
-  flutter_native_splash: ^2.4.7
+  share_plus: ^12.0.2
+  shared_preferences: ^2.5.4
+  skeletonizer: ^2.1.3
+  smooth_page_indicator: ^2.0.1
+  url_launcher: ^6.3.1
+  video_player: ^2.10.0
+  volume_controller: ^3.4.4
+  wakelock_plus: ^1.5.2
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^6.0.0
-
   # Code Generation
   build_runner: ^2.12.2
+  flutter_launcher_icons: ^0.14.4
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
   hive_ce_generator: ^1.11.1
 
 flutter:
@@ -98,4 +62,17 @@ flutter:
     - assets/
     - assets/icons/
     - assets/translations/
+    - assets/env/default.env
 
+# https://pub.dev/packages/flutter_launcher_icons
+# Regenerate: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icons/streamit_logo.png
+  # Android 8+ adaptive icon (background + foreground required for generation)
+  adaptive_icon_background: "#0B1220"
+  adaptive_icon_foreground: assets/icons/streamit_logo.png
+  # iOS App Store: icons are square, no transparency; use brand color as matte
+  remove_alpha_ios: true
+  background_color_ios: "#0B1220"

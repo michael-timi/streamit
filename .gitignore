@@ -1,3 +1,9 @@
+# Local tool venvs (e.g. one-off image scripts)
+.python_deps/
+
+# Node tooling (SVG → PNG rasterize in scripts/)
+scripts/node_modules/
+
 # Secrets / local env (never commit)
 .env
 .env.*
